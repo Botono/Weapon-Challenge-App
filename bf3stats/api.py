@@ -86,7 +86,7 @@ class API(object):
     def playerlist(self, players, parts=None):
         """Request a list of players"""
         post_data = {
-                'players' : players,
+                'players' : json.dumps(players),
                 'opt' : parts
                 }
         return self._request(post_data, data_group='playerlist')

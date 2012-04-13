@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-import webapp2
 import bf3stats
+import cPickle
 import jinja2
 import os
 import time
-
+import datetime
+import webapp2
 
 from google.appengine.ext import db
 from google.appengine.api import users
@@ -21,6 +22,36 @@ KIT_SUPPORT = 'Support'
 KIT_ENGINEER = 'Engineer'
 KIT_GENERAL = 'General'
 
+KITS = [KIT_ASSAULT, KIT_ENGINEER, KIT_RECON, KIT_SUPPORT, KIT_GENERAL]
+
+AOA_MEMBERS = [
+                'botono9',
+                'dpg70',
+                'benderisgr8',
+                'V_V-RECKONER-V_V',
+                'NY_Scumbag',
+                'UnshavenCanuck',
+                'oxsox',
+                'TheHellRaisers3',
+                'AVENTINUS78',
+                'DecaturKing86',
+                'Thorndoor',
+                'Merkn_Muffley',
+                'MatthewScars',
+                'HELLeRaZoR',
+                'Jung_at_Heart',
+                'Deth_Lok',
+                'becca0011',
+                'todesengel1875',
+                'ez_____ez_____ez',
+                'Deaf_P0wnage',
+                'couchkiller99',
+                'squijjle',
+                'Daddiode',
+                'alankstiyo',
+                ]
+
+
 class Weapon(db.Model):
     """Model for Weapon"""
     weapon_id = db.StringProperty()
@@ -33,13 +64,15 @@ class Weapon(db.Model):
 class Player(db.Model):
     """Player Model"""
     player_name = db.StringProperty()
-    player_stats = db.StringProperty(multiline=True)
+    player_stats = db.BlobProperty() # Pickled stats
     player_stats_updated = db.DateTimeProperty()
+    player_active = db.BooleanProperty()
 
 class Challenge(db.Model):
     """Challenge Model"""
     created = db.DateTimeProperty()
-    weapons = db.ListProperty(Weapon)
+    weapons_primary = db.ListProperty(str)
+    weapons_combination = db.ListProperty(str)
 
 class ChallengeMatch(db.Model):
     """MANY TO MANY ChallengeMatch"""
@@ -66,17 +99,22 @@ class MainHandler(webapp2.RequestHandler):
 class AddChallenge(webapp2.RequestHandler):
     """docstring for AddChallenge"""
     def get(self):
-        self.response.out.write('ADD CHALLENGE')
+        template_values = {}
+        
+        template = jinja_environment.get_template('add_challenge.html')
+        self.response.out.write(template.render(template_values))
+
 
 class InitHandler(webapp2.RequestHandler):
     """docstring for InitHandler"""
     def get(self):
         template_values = {}
+        mysecrets = Secrets()
+        stats_obj = bf3stats.api(plattform='ps3', secret=mysecrets.bf3StatsKey, ident=mysecrets.bf3StatsIdent)
 
         # If weapon info is empty, fill it
+        template_values['weapons_added'] = 'Weapons not added to datastore.'
         if not Weapon.all(keys_only=True).get():
-            mysecrets = Secrets()
-            stats_obj = bf3stats.api(plattform='ps3', secret=mysecrets.bf3StatsKey, ident=mysecrets.bf3StatsIdent)
 
             # Pull the information on all the Kits
             # Data looks like:
@@ -93,9 +131,22 @@ class InitHandler(webapp2.RequestHandler):
                         weapon_kit = kit_name,
                         weapon_type = item['type'], #weapon or kititem
                         weapon_img = item['img']).put()
+            template_values['weapons_added'] = 'Weapons datastore filled!'
 
         # Update user info from Google Doc
-        
+        template_values['players_added'] = 'Players not added to datastore.'
+        if not Player.all(keys_only=True).get():
+            # Last updated date is in weapons_data['list'][member_name]['stats']['date_update']
+            weapons_data = stats_obj.playerlist(AOA_MEMBERS, parts='clean,weapons')
+            if weapons_data['status'] == 'ok':
+                failed_members = weapons_data.get('failed', {})
+                for member_name in weapons_data['list'].iterkeys():
+                     Player(
+                        player_name = member_name,
+                        player_stats = cPickle.dumps(weapons_data['list'][member_name]['stats']['weapons']),
+                        player_stats_updated = datetime.datetime.fromtimestamp(weapons_data['list'][member_name]['stats']['date_update']),
+                        player_active = True).put()
+            template_values['players_added'] = 'Players datastore filled!'
         template = jinja_environment.get_template('init.html')
         self.response.out.write(template.render(template_values))
         
