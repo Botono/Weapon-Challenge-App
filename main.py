@@ -56,7 +56,7 @@ class MainHandler(webapp2.RequestHandler):
     def get(self):
         template_values = {}
         
-        template = jinja_environment.get_template('main.html')
+        template = jinja_environment.get_template('templates/main.html')
         self.response.out.write(template.render(template_values))
 
 class AddChallenge(webapp2.RequestHandler):
@@ -64,7 +64,7 @@ class AddChallenge(webapp2.RequestHandler):
     def get(self):
         template_values = {}
         
-        template = jinja_environment.get_template('add_challenge.html')
+        template = jinja_environment.get_template('templates/add_challenge.html')
         self.response.out.write(template.render(template_values))
 
 
@@ -102,7 +102,7 @@ class FixPistolsHandler(webapp2.RequestHandler):
                         weapon_type = sub_pistol_data['weapon_type'], #weapon or kititem
                         weapon_img = sub_pistol_data['weapon_img'],
                         weapon_parent = main_pistol).put()
-        template = jinja_environment.get_template('fixpistols.html')
+        template = jinja_environment.get_template('templates/fixpistols.html')
         self.response.out.write(template.render(template_values))
 
 class InitHandler(webapp2.RequestHandler):
@@ -156,7 +156,7 @@ class InitHandler(webapp2.RequestHandler):
                         player_stats_updated = datetime.datetime.fromtimestamp(weapons_data['list'][member_name]['stats']['date_update']),
                         player_active = True).put()
             template_values['players_added'] = 'Players datastore filled!'
-        template = jinja_environment.get_template('init.html')
+        template = jinja_environment.get_template('templates/init.html')
         self.response.out.write(template.render(template_values))
 
 class DeleteWeaponsHandler(webapp2.RequestHandler):
@@ -165,7 +165,7 @@ class DeleteWeaponsHandler(webapp2.RequestHandler):
         template_values = {}
         # EVERYONE!!!!!
         models.delete_all_weapons()
-        template = jinja_environment.get_template('main.html')
+        template = jinja_environment.get_template('templates/main.html')
         self.response.out.write(template.render(template_values))
 
 app = webapp2.WSGIApplication([('/', MainHandler),
